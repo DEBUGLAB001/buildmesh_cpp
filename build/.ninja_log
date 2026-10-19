@@ -1,0 +1,13 @@
+# ninja log v7
+97	30149	8141302843782615	CMakeFiles/core_services.dir/src/service/build_executor.cpp.obj	1a7851f77dec2da3
+75	30349	8141302843577577	CMakeFiles/core_services.dir/src/service/build_planner.cpp.obj	b8cd436da87b44be
+50	30501	8141302843323099	CMakeFiles/core_services.dir/src/service/dependency_engine.cpp.obj	f2cb8cd0379fb118
+30503	31646	8141303147850332	libcore_services.a	90cf4facaacc041c
+141	32352	8141302844262009	CMakeFiles/challenge_tests.dir/tests/test_suite.cpp.obj	69a7882c0a3827d
+32353	33987	8141303166354684	challenge_tests.exe	270e8cde99bb3a49
+119	50573	8141302844009215	CMakeFiles/server.dir/src/main.cpp.obj	8695ce04a98e4187
+50582	51283	8141303348642369	server.exe	358323ab7cd7c24b
+479	15666	8141304027203920	CMakeFiles/core_services.dir/src/service/build_planner.cpp.obj	b8cd436da87b44be
+15670	17569	8141304179119531	libcore_services.a	90cf4facaacc041c
+17569	23525	8141304198116052	server.exe	358323ab7cd7c24b
+17605	23873	8141304198470234	challenge_tests.exe	270e8cde99bb3a49

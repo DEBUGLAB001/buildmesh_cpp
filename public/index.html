@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BuildMesh — Incremental Build Dependency Engine</title>
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Navigation / Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-logo">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">BuildMesh <span class="badge badge-subtle">Engine</span></h1>
+          <p class="brand-subtitle">Incremental Build Dependency & Invalidation System</p>
+        </div>
+      </div>
+
+      <div class="header-status">
+        <div class="status-pill" id="server-status">
+          <span class="status-dot"></span>
+          <span id="server-status-text">CONNECTING...</span>
+        </div>
+        <div class="stat-badge">
+          <span class="stat-label">Project Rev:</span>
+          <span class="stat-val" id="project-rev-badge">#1</span>
+        </div>
+        <div class="stat-badge">
+          <span class="stat-label">Build:</span>
+          <span class="stat-val status-idle" id="last-build-status-badge">IDLE</span>
+        </div>
+        <button id="btn-reset" class="btn btn-secondary btn-sm" title="Reset to default project">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+            <path d="M3 3v5h5"></path>
+          </svg>
+          Reset Graph
+        </button>
+      </div>
+    </header>
+
+    <!-- Overview Metrics Bar -->
+    <section class="metrics-grid">
+      <div class="metric-card">
+        <span class="metric-label">Total Modules</span>
+        <div class="metric-value" id="metric-total-modules">-</div>
+        <span class="metric-meta">Registered targets</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Modified Modules</span>
+        <div class="metric-value text-amber" id="metric-modified-modules">-</div>
+        <span class="metric-meta">Source ahead of artifact</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Affected Modules</span>
+        <div class="metric-value text-cyan" id="metric-affected-modules">-</div>
+        <span class="metric-meta">Downstream dependents</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Cached Artifacts</span>
+        <div class="metric-value text-emerald" id="metric-cached-artifacts">-</div>
+        <span class="metric-meta">Reusable binaries</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Last Build Duration</span>
+        <div class="metric-value" id="metric-last-duration">-</div>
+        <span class="metric-meta">Simulated compile time</span>
+      </div>
+    </section>
+
+    <!-- Validation Diagnostics Banner (shown if issues exist) -->
+    <div id="validation-banner" class="validation-banner hidden">
+      <div class="banner-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+      <div class="banner-content" id="validation-messages">
+        <!-- Live diagnostics inserted here -->
+      </div>
+    </div>
+
+    <!-- Main Workspace: Split Panels -->
+    <main class="workbench-layout">
+      <!-- Left Column: Dependency Explorer & Source Simulator -->
+      <section class="panel-column explorer-column">
+        <!-- Dependency Explorer Card -->
+        <div class="card explorer-card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h2 class="card-title">Dependency Explorer</h2>
+              <span class="card-caption">Directed build dependency graph</span>
+            </div>
+            <div class="graph-legend">
+              <span class="legend-item"><span class="legend-box box-cached"></span> Cached</span>
+              <span class="legend-item"><span class="legend-box box-modified"></span> Modified</span>
+              <span class="legend-item"><span class="legend-box box-affected"></span> Affected</span>
+            </div>
+          </div>
+
+          <div class="graph-viewport-wrapper">
+            <svg id="dependency-svg" class="dependency-svg" width="100%" height="420"></svg>
+          </div>
+
+          <!-- Module Detail Inspector -->
+          <div id="module-inspector" class="module-inspector">
+            <div class="inspector-header">
+              <div class="inspector-title">
+                <span class="inspector-label">Selected Module:</span>
+                <span class="inspector-mod-name" id="ins-mod-name">core_types</span>
+                <code class="inspector-mod-id" id="ins-mod-id">(core_types)</code>
+              </div>
+              <span class="badge" id="ins-status-badge">CACHED</span>
+            </div>
+
+            <div class="inspector-grid">
+              <div class="ins-prop">
+                <span class="ins-prop-key">Source Revision</span>
+                <span class="ins-prop-val" id="ins-src-rev">rev 1</span>
+              </div>
+              <div class="ins-prop">
+                <span class="ins-prop-key">Artifact Revision</span>
+                <span class="ins-prop-val" id="ins-art-rev">rev 1</span>
+              </div>
+              <div class="ins-prop">
+                <span class="ins-prop-key">Estimated Duration</span>
+                <span class="ins-prop-val" id="ins-duration">100 ms</span>
+              </div>
+              <div class="ins-prop">
+                <span class="ins-prop-key">Failure Simulation</span>
+                <span class="ins-prop-val" id="ins-fail-sim">Disabled</span>
+              </div>
+            </div>
+
+            <div class="inspector-links">
+              <div class="links-block">
+                <span class="links-title">Direct Dependencies (Requires):</span>
+                <div class="tags-list" id="ins-deps-list">None (Root)</div>
+              </div>
+              <div class="links-block">
+                <span class="links-title">Direct Dependents (Required by):</span>
+                <div class="tags-list" id="ins-dependents-list">None</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Source Change Simulator Card -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h2 class="card-title">Source Change Simulator</h2>
+              <span class="card-caption">Simulate developer edits and defect scenarios</span>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="sim-controls">
+              <div class="form-group">
+                <label for="module-select">Target Source Module</label>
+                <select id="module-select" class="form-select"></select>
+              </div>
+
+              <div class="button-row">
+                <button id="btn-mark-changed" class="btn btn-primary">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 20h9"></path>
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                  </svg>
+                  Mark Source Changed
+                </button>
+                <button id="btn-toggle-failure" class="btn btn-warning">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                  </svg>
+                  Toggle Failure Sim
+                </button>
+              </div>
+            </div>
+            <p class="help-text">Marking a source changed increments its source revision. The C++ engine recalculates downstream affected targets.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Incremental Planner, Execution & Activity Log -->
+      <section class="panel-column execution-column">
+        <!-- Build Planner Card -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h2 class="card-title">Incremental Build Planner</h2>
+              <span class="card-caption">Topological ordering & step calculation</span>
+            </div>
+            <button id="btn-plan" class="btn btn-primary btn-sm">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              Generate Build Plan
+            </button>
+          </div>
+
+          <div class="card-body">
+            <div class="plan-summary-bar">
+              <div class="summary-item">
+                <span class="summary-key">Steps in Plan:</span>
+                <span class="summary-val" id="plan-step-count">0</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-key">Est. Total Time:</span>
+                <span class="summary-val" id="plan-est-duration">0 ms</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-key">Plan Status:</span>
+                <span class="summary-val" id="plan-validity">Valid</span>
+              </div>
+            </div>
+
+            <div class="steps-container" id="plan-steps-list">
+              <div class="empty-state">No active build plan. Click "Generate Build Plan" or modify a module.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Build Execution Card -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h2 class="card-title">Build Execution Panel</h2>
+              <span class="card-caption">Simulated compilation runner & state transitions</span>
+            </div>
+            <button id="btn-build" class="btn btn-success btn-sm">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+              </svg>
+              Execute Build
+            </button>
+          </div>
+
+          <div class="card-body">
+            <div class="execution-result-summary" id="exec-summary">
+              <div class="exec-status-row">
+                <span class="exec-label">Status:</span>
+                <span class="status-pill-static" id="exec-status-pill">IDLE</span>
+                <span class="exec-time" id="exec-time-text">0 ms</span>
+              </div>
+              <div class="exec-counts">
+                <span class="count-tag text-emerald" id="exec-completed-count">0 completed</span>
+                <span class="count-tag text-rose" id="exec-failed-count">0 failed</span>
+                <span class="count-tag text-amber" id="exec-blocked-count">0 blocked</span>
+              </div>
+            </div>
+
+            <div class="execution-steps-list" id="exec-steps-list">
+              <div class="empty-state">Execute a build plan to view step outcomes and artifact revision updates.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity & Diagnostics Log -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h2 class="card-title">Diagnostics & Activity Log</h2>
+              <span class="card-caption">Real-time system events from C++ services</span>
+            </div>
+            <button id="btn-clear-log" class="btn btn-secondary btn-xs">Clear Log</button>
+          </div>
+          <div class="card-body terminal-body">
+            <div class="terminal-log" id="terminal-log">
+              <!-- Log entries appended dynamically -->
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="./js/app.js"></script>
+</body>
+</html>

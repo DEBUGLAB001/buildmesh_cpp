@@ -1,0 +1,17 @@
+{
+  "challenge_id": "cpp-buildmesh-incremental-engine",
+  "title": "BuildMesh — Incremental Build Dependency Engine",
+  "description": "Debug an incremental build system dependency engine. Investigate graph traversal, directed cycle detection, topological ordering, dependency invalidation, artifact revision tracking, and failed prerequisite recovery.",
+  "runtime_config": {
+    "runtime_type": "cpp-cmake",
+    "install_command": "echo 'BuildMesh dependencies pre-installed'",
+    "start_command": "./start.sh",
+    "test_command": "./tests/run_tests.sh",
+    "ports": [
+      {
+        "port": 8080,
+        "type": "preview"
+      }
+    ]
+  }
+}
